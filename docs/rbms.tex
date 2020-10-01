@@ -1,0 +1,319 @@
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{oke-header-math}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mathematics
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\vbf}{\boldsymbol{v}}
+\newcommand{\hbf}{\boldsymbol{h}}
+\newcommand{\abf}{\boldsymbol{a}}
+\newcommand{\bbf}{\boldsymbol{b}}
+\newcommand{\Vbf}{\boldsymbol{V}}
+\newcommand{\Hbf}{\boldsymbol{H}}
+\newcommand{\qt}{\tilde{q}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Title
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{RBMs}
+\author{Oliver K. Ernst}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin document
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Theory}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+The objective function is the KL divergence:
+%---------------
+\begin{equation}
+\dkl (p || \pt) = \int dx \; p(x) \ln \frac{p(x)}{\pt(x, \nu)}
+\end{equation}
+%---------------
+where $p(x)$ is the true data distribution and $\pt(x,\nu)$ is the model distribution:
+%---------------
+\begin{equation}
+\begin{split}
+\pt(x,\nu) &= \frac{1}{Z(\nu)} \exp [ - E(x, \nu) ] \\
+Z(\nu) &= \int dy \; \exp [ - E(y, \nu) ]
+\end{split}
+\end{equation}
+%---------------
+for some energy function $E(x,\nu)$ with interactions $\nu$. The gradients are
+%---------------
+\begin{equation}
+\begin{split}
+\frac{\partial \dkl}{\partial \nu} 
+&=
+- \int dx \; p(x) \left ( \frac{\pt(x,\nu)}{p(x)} \right ) p(x) \left ( \pt(x,\nu) \right )^{-2} \frac{\partial \pt(x,\nu)}{\partial \nu}
+=
+- \int dx \; \frac{p(x)}{\pt(x,\nu)} \frac{\partial \pt(x,\nu)}{\partial \nu} \\
+%%%%
+\frac{\partial \pt(x,\nu)}{\partial \nu}
+&=
+- \frac{\partial E(x,\nu)}{\partial \nu} \pt(x, \nu) - \frac{1}{Z(\nu)^2} \exp[-E(x,\nu)] \frac{\partial Z(\nu)}{\partial \nu} \\
+&=
+- \frac{\partial E(x,\nu)}{\partial \nu} \pt(x, \nu) + \frac{1}{Z(\nu)} \pt(x,\nu) \int dy \; \frac{\partial E(y,\nu)}{\partial \nu} \exp[-E(y,\nu)] \\
+&=
+- \frac{\partial E(x,\nu)}{\partial \nu} \pt(x, \nu) + \pt(x,\nu) \int dy \; \frac{\partial E(y,\nu)}{\partial \nu} \pt(y,\nu) \\
+&=
+- \frac{\partial E(x,\nu)}{\partial \nu} \pt(x, \nu) + \pt(x,\nu) \left \langle \frac{\partial E}{\partial \nu} \right \rangle_{\pt} \\
+%%%%
+\frac{\partial \dkl}{\partial \nu} 
+&=
+\int dx \; \frac{p(x)}{\pt(x,\nu)} \frac{\partial E(x,\nu)}{\partial \nu} \pt(x, \nu)
+- \int dx \; \frac{p(x)}{\pt(x,\nu)} \pt(x,\nu) \left \langle \frac{\partial E}{\partial \nu} \right \rangle_{\pt} \\
+&=
+\int dx \; p(x) \frac{\partial E(x,\nu)}{\partial \nu}
+- \int dx \; p(x) \left \langle \frac{\partial E}{\partial \nu} \right \rangle_{\pt} \\
+&=
+\left \langle \frac{\partial E}{\partial \nu} \right \rangle_p
+- \left \langle \frac{\partial E}{\partial \nu} \right \rangle_{\pt}
+\end{split}
+\end{equation}
+%---------------
+where the second integral is unity because $p$ is normalized by definition.
+%---------------
+\begin{equation}
+\boxed{
+\frac{\partial \dkl}{\partial \nu} 
+=
+\left \langle \frac{\partial E}{\partial \nu} \right \rangle_p
+- \left \langle \frac{\partial E}{\partial \nu} \right \rangle_{\pt}
+}
+\end{equation}
+%---------------
+The first term is often called the \textit{awake phase} moment, or moment under the \textit{data distribution} $p$; the second term is often called the \textit{asleep phase} moment, or moment under the \textit{model distribution} $\pt$.
+
+For the discrete case on a lattice with visible units $\vbf$ and hidden units $\hbf$:
+%---------------
+\begin{equation}
+\dkl (p || \pt) = \sum_{\vbf} \sum_{\hbf} p(\vbf, \hbf) \ln \frac{p(\vbf, \hbf)}{\pt(\vbf,\hbf)}
+\end{equation}
+%---------------
+and a common energy function is:
+%---------------
+\begin{equation}
+\begin{split}
+E(\vbf, \hbf) = - \abf^\intercal \vbf - \bbf^\intercal \hbf - \vbf^\intercal W \hbf
+\end{split}
+\end{equation}
+%---------------
+for biases $\abf,\bbf$ and weight matrix $W$, which play the role of $\nu$. The gradients are:
+%---------------
+\begin{equation}
+\begin{split}
+\frac{\partial E}{\partial \abf} &= - \vbf \\
+\frac{\partial E}{\partial \bbf} &= - \hbf \\
+\frac{\partial E}{\partial W} &= - \vbf \otimes \hbf
+\end{split}
+\end{equation}
+%---------------
+leading to the gradients:
+%---------------
+\begin{equation}
+\boxed{
+\begin{split}
+\frac{\partial \dkl}{\partial \abf} 
+&=
+\left \langle \vbf \right \rangle_{\pt}
+- \left \langle \vbf \right \rangle_p \\
+%%%
+\frac{\partial \dkl}{\partial \bbf} 
+&=
+\left \langle \hbf \right \rangle_{\pt}
+- \left \langle \hbf \right \rangle_p \\
+%%%
+\frac{\partial \dkl}{\partial W} 
+&=
+\left \langle \vbf \otimes \hbf \right \rangle_{\pt}
+- \left \langle \vbf \otimes \hbf \right \rangle_p 
+\end{split}
+}
+\end{equation}
+%---------------
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Implementation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+\subsection{Gradients}
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+
+In practice, concerning the moments $\langle \dots \rangle$:
+\begin{itemize}
+\item In the continuous case, we usually cannot analytically perform the integral $\int dx$.
+\item In the discrete case, we usually cannot enumerate all possible states appearing in the sum $\sum_x$.
+\end{itemize}
+Therefore, these moments are estimated using batches. In the continuous case, let the batch be $X_{\pt}$ of size $N$, typically small ($N\sim 5 -10$). For some observable $\chi(x)$:
+%---------------
+\begin{equation}
+\langle \chi(x) \rangle_{\pt} = \int dx \; \pt(x, \nu) \chi(x) \sim \frac{1}{N} \sum_{i=1}^N \chi(X_{\pt,i})
+\end{equation}
+%---------------
+and similarly for moments with respect to $p$. In the discrete case, with the batch represented as $\Vbf_{\pt}, \Hbf_{\pt}$:
+%---------------
+\begin{equation}
+\langle \chi(\vbf, \hbf) \rangle_{\pt} = \sum_{\vbf} \sum_{\hbf} \; \pt(\vbf, \hbf) \chi(\vbf, \hbf) \sim \frac{1}{N} \sum_{i=1}^N \chi(\Vbf_{\pt,i}, \Hbf_{\pt,i} )
+\end{equation}
+%---------------
+
+The gradients are therefore estimated as:
+%---------------
+\begin{equation}
+\boxed{
+\begin{split}
+\frac{\partial \dkl}{\partial \abf} 
+&=
+\frac{1}{N} \sum_{i=1}^N \Vbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Vbf_{p, i} \\
+%%%
+\frac{\partial \dkl}{\partial \bbf} 
+&=
+\frac{1}{N} \sum_{i=1}^N \Hbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Hbf_{p, i} \\
+%%%
+\frac{\partial \dkl}{\partial W} 
+&=
+\frac{1}{N} \sum_{i=1}^N \Vbf_{\pt, i} \otimes \Hbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Vbf_{p, i} \otimes \Hbf_{p, i}
+\end{split}
+}
+\label{eq:grads}
+\end{equation}
+%---------------
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+\subsection{Sampling}
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+
+Where do such batches come from? They should be samples of the distributions $p$ or $\pt$ as appropriate.
+\begin{itemize}
+\item For sampling the model distribution $\pt$, we have several options:
+\begin{itemize}
+\item In the continuous case, without knowing further about $\pt(x)$, we can always perform Markov Chain Monte Carlo (MCMC) to sample the distributions (other sampling methods \textit{may} be possible).
+\item In the discrete case, we can use \textit{Gibbs sampling}, which works by iteratively sampling $\pt(v_i | \hbf)$ and $\pt(h_i | \vbf)$. These are derived as follows:
+%---------------
+\begin{equation}
+\begin{split}
+\pt(h_i | \vbf) &= \frac{\pt(h_i, \vbf)}{\pt(\vbf)} \\
+\pt(\vbf) &= \sum_{\hbf} \pt(\vbf,\hbf) \propto \exp [ \abf^\intercal \vbf ] \\
+\pt(\hbf, \vbf) &= \prod_i \pt(h_i, \vbf)
+\end{split}
+\end{equation}
+%---------------
+where the last line follows because in an RBM, the hidden variables are conditionally independent of all other hidden variables, and similarly for visible-visibles, then:
+%---------------
+\begin{equation}
+\begin{split}
+\pt(h_i, \vbf) \propto \exp [ \abf^\intercal \vbf + b_i h_i + \vbf^\intercal \text{col}_i(W) h_i ]
+\end{split}
+\end{equation}
+%---------------
+then it follows:
+%---------------
+\begin{equation}
+\boxed{
+\pt(h_i | \vbf) \propto \exp [ b_i h_i + \vbf^\intercal \text{col}_i(W) h_i ]
+}
+\end{equation}
+%---------------
+and similarly
+%---------------
+\begin{equation}
+\boxed{
+\pt(v_i | \hbf) \propto \exp [ a_i v_i + v_i \text{row}_i(W) \hbf ]
+}
+\end{equation}
+%---------------
+In \textit{contrastive divergence}, this procedure of iteratively sampling $\pt(v_i | \hbf)$ and $\pt(h_i | \vbf)$ is performed only a few times (or even only once!), starting from an initial data vector $\vbf$. This greatly improves computational efficiency; alternatively, you can run this sampler for a long time to let the \textit{chain converge}.
+
+After sampling, we obtain the desired samples for the batch $\Vbf_{\pt,i}, \Hbf_{\pt,i}$. The sampling can be performed in \textit{parallel} for higher efficiency, evaluating all $N$ items in the batch $\Vbf_{\pt}, \Hbf_{\pt}$.
+
+In \textit{persistent contrastive divergence}, we do not throw out the hidden states $\Vbf_{\pt}, \Hbf_{\pt}$ after one gradient step and restart from new data vectors $\vbf$. Instead, we keep these states, and use them in the next gradient step again as the starting point for sampling $\pt(v_i | \hbf)$ and $\pt(h_i | \vbf)$ for a few more steps.
+
+\item The samples $\Vbf_p$ from the data distribution $p$ are obvious; they are provided as training data. The samples $\Hbf_p$ are obtained by \textit{clamping the visible units to the data vectors $\Vbf_p$} and sampling \textit{only} $\pt(h_i | \vbf)$. Note that this is similarly possible with MCMC for the general continuous case; assuming we partition $x$ into observed and latent variables, we can sample only the latent variables, keeping the observed variables clamped.
+
+\end{itemize} 
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+\subsection{Objective function}
+
+%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+
+It would be great if we could code up the objective function $\dkl$ onto a computer, but this is \textbf{not trivial}. Instead, we can make an important restriction:
+%---------------
+\begin{equation*}
+\text{Assume that our \textbf{optimizer only uses first-order gradients.}}
+\end{equation*}
+%---------------
+\textbf{If} we make this restriction, we can consider the following objective function
+%---------------
+\begin{equation}
+\begin{split}
+S
+=&
+\abf^\intercal \left ( 
+\frac{1}{N} \sum_{i=1}^N \Vbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Vbf_{p, i}
+\right ) \\
+%%%
+& +
+\bbf^\intercal \left ( 
+\frac{1}{N} \sum_{i=1}^N \Hbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Hbf_{p, i} 
+\right ) \\
+%%%
+& +
+\left (
+\frac{1}{N} \sum_{i=1}^N \Vbf_{\pt, i}^\intercal W \Hbf_{\pt, i}
+- \frac{1}{N} \sum_{i=1}^N \Vbf_{p, i}^\intercal W \Hbf_{p, i}
+\right )
+\end{split}
+\end{equation}
+%---------------
+which has the same \textbf{first-order} gradients as~(\ref{eq:grads}). 
+
+\textbf{Note that the second-order gradients will obviously be incorrect!}
+
+This trick allows us to easily implement an RBM in TensorFlow.
+
+
+\end{document}

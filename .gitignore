@@ -1,0 +1,7 @@
+.DS_Store
+__pycache__/
+*.ckpt/
+*.aux
+*.out
+*.synctex.gz
+.texpadtmp/
