@@ -2,6 +2,14 @@
 
 This repo. contains an implementation of RBMs in `TensorFlow 2`, (specifically: `2.3`).
 
+Dreaming digits:
+- Top row = original training data.
+- Bottom row = dreamed digits after CD sampling.
+<img src="figures_compiled/dreaming.png" alt="drawing" width="400"/>
+
+Histogram of weights and biases:
+<img src="figures_compiled/histograms.png" alt="drawing" width="400"/>
+
 ## Usage
 
 ```
