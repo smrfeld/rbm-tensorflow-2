@@ -21,6 +21,7 @@ def print_help_and_exit():
 
 def save_fig(figures_dir, fname):
     plt.savefig(figures_dir + fname + ".png", dpi=200)
+    print("Saved figure: %s" % (figures_dir + fname))
 
 if __name__ == "__main__":
 
@@ -65,14 +66,14 @@ if __name__ == "__main__":
 
     # Prepare to save
     ckpt = tf.train.Checkpoint(
+        iteration_weights=rbm.opt_weights.iterations,
+        iteration_biases=rbm.opt_biases.iterations,
         weights=rbm.weights, 
         bias_visible=rbm.bias_visible,
         bias_hidden=rbm.bias_hidden
         )
-
     no_epochs = 20
-    manager = tf.train.CheckpointManager(ckpt, './rbm_mnist.ckpt', max_to_keep=no_epochs)
-    ckpt.restore(manager.checkpoints[-1])
+    manager = tf.train.CheckpointManager(ckpt, './rbm_mnist.ckpt', max_to_keep=no_epochs+1)
 
     if mode == Mode.TRAIN_AND_SAVE:
 
@@ -85,12 +86,13 @@ if __name__ == "__main__":
 
             # Train
             rbm.train(
+                epoch_idx=i_epoch,
                 all_visible_samples=all_visible_samples,
                 batch_size=5,
-                no_cd_steps=1,
+                no_cd_steps=5,
                 no_iter=no_iter_per_epoch,
-                learning_rate_weights=0.00001,
-                learning_rate_biases=0.0000001,
+                learning_rate_weights=0.001,
+                learning_rate_biases=0.00001,
                 persistent_cd=True
             )
 
@@ -114,7 +116,7 @@ if __name__ == "__main__":
             weights_ex[idx] = []
 
         # Weights at each epoch
-        for i_epoch in reversed(range(0,no_epochs)):
+        for i_epoch in reversed(range(0,no_epochs+1)):
             ckpt.restore(manager.checkpoints[-i_epoch-1])
             for idx in idxs:
                 weights_ex[idx].append(rbm.weights.numpy()[idx[0],idx[1]])
@@ -192,5 +194,10 @@ if __name__ == "__main__":
             if i != len(idxs) - 1:
                 plt.close()
 
-        plt.show()
+        # Weights
+        mat = np.reshape(rbm.weights.numpy()[0], newshape=(x,y))
+        plt.title("Weights %03d" % 0)
+        save_fig(figures_dir,"weights_%03d" % 0)
+
+        # plt.show()
 

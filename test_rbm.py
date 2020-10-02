@@ -20,6 +20,7 @@ for i in range(0,no_samples):
 print(all_visible_samples)
 
 rbm.train(
+    epoch_idx=0,
     all_visible_samples=all_visible_samples,
     batch_size=5,
     no_cd_steps=2,
